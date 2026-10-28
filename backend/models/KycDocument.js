@@ -29,6 +29,14 @@ const kycDocumentSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  fileData: {
+    type: String, // Base64 data URL
+    trim: true
+  },
+  fileType: {
+    type: String, // MIME type (e.g. image/jpeg, application/pdf)
+    trim: true
+  },
   status: {
     type: String,
     enum: ['Pending', 'Verified', 'Rejected'],

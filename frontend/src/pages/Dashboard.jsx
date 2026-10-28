@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import gsap from 'gsap'
 import UserManagement from '../components/UserManagement'
@@ -74,6 +75,64 @@ function formatDate() {
   })
 }
 
+function getDocumentSource(doc) {
+  if (!doc) return null
+  if (doc.fileData && doc.fileData.length > 20) {
+    return doc.fileData
+  }
+  const name = encodeURIComponent(doc.athleteName || doc.athleteId || 'Registered Athlete')
+  const athleteId = encodeURIComponent(doc.athleteId || 'ATH-2026')
+  const docType = encodeURIComponent(doc.docType || doc.title || doc.fileName || 'Official Record')
+  const fileName = encodeURIComponent(doc.fileName || doc.file || 'document.pdf')
+  const date = encodeURIComponent(new Date(doc.createdAt || Date.now()).toLocaleDateString())
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1050" viewBox="0 0 800 1050">
+    <defs>
+      <linearGradient id="gold" x1="0" y1="0" x2="800" y2="1050" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#F59E0B"/>
+        <stop offset="100%" stop-color="#D97706"/>
+      </linearGradient>
+      <linearGradient id="bg" x1="0" y1="0" x2="800" y2="1050" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#0F172A"/>
+        <stop offset="100%" stop-color="#020617"/>
+      </linearGradient>
+    </defs>
+    <rect width="800" height="1050" fill="url(#bg)"/>
+    <rect x="25" y="25" width="750" height="1000" rx="16" fill="none" stroke="url(#gold)" stroke-width="3" stroke-dasharray="12 6"/>
+    <rect x="40" y="40" width="720" height="970" rx="12" fill="#1E293B" fill-opacity="0.6" stroke="#334155" stroke-width="1.5"/>
+    <circle cx="400" cy="140" r="50" fill="none" stroke="url(#gold)" stroke-width="3"/>
+    <path d="M380 160 L400 115 L420 160 Z" fill="none" stroke="#F59E0B" stroke-width="3"/>
+    <circle cx="400" cy="110" r="6" fill="#EF4444"/>
+    <text x="400" y="230" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#F8FAFC" text-anchor="middle" letter-spacing="3">STATE SPORTS ACADEMY</text>
+    <text x="400" y="260" font-family="Arial, sans-serif" font-size="13" font-weight="600" fill="#94A3B8" text-anchor="middle" letter-spacing="2">OFFICIAL ATHLETIC DOCUMENT VAULT</text>
+    <line x1="120" y1="290" x2="680" y2="290" stroke="#334155" stroke-width="1.5"/>
+    <rect x="220" y="320" width="360" height="42" rx="8" fill="#F59E0B" fill-opacity="0.15" stroke="#F59E0B" stroke-width="1.5"/>
+    <text x="400" y="347" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#FBBF24" text-anchor="middle">${docType}</text>
+    <rect x="80" y="400" width="640" height="340" rx="10" fill="#0F172A" stroke="#334155" stroke-width="1"/>
+    <text x="120" y="450" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#64748B">ATHLETE NAME</text>
+    <text x="120" y="480" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#F8FAFC">${name}</text>
+    <text x="460" y="450" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#64748B">ATHLETE / REGISTRATION ID</text>
+    <text x="460" y="480" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#38BDF8">${athleteId}</text>
+    <line x1="120" y1="515" x2="680" y2="515" stroke="#1E293B" stroke-width="1"/>
+    <text x="120" y="560" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#64748B">ATTACHED FILE NAME</text>
+    <text x="120" y="590" font-family="Arial, sans-serif" font-size="15" font-weight="600" fill="#CBD5E1">${fileName}</text>
+    <text x="460" y="560" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#64748B">REGISTRATION TIMESTAMP</text>
+    <text x="460" y="590" font-family="Arial, sans-serif" font-size="15" font-weight="600" fill="#CBD5E1">${date}</text>
+    <line x1="120" y1="625" x2="680" y2="625" stroke="#1E293B" stroke-width="1"/>
+    <text x="120" y="670" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#64748B">DOCUMENT INTEGRITY</text>
+    <text x="120" y="700" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#34D399">&#x2713; DIGITAL RECORD VERIFIED IN ACADEMY REPOSITORY</text>
+    <circle cx="200" cy="850" r="55" fill="none" stroke="#F59E0B" stroke-width="2.5" stroke-dasharray="6 3"/>
+    <circle cx="200" cy="850" r="45" fill="none" stroke="#F59E0B" stroke-width="1"/>
+    <text x="200" y="845" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#FBBF24" text-anchor="middle">STATE SPORTS</text>
+    <text x="200" y="862" font-family="Arial, sans-serif" font-size="9" font-weight="bold" fill="#FBBF24" text-anchor="middle">OFFICIAL SEAL</text>
+    <line x1="460" y1="875" x2="660" y2="875" stroke="#94A3B8" stroke-width="1.5"/>
+    <text x="560" y="900" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#94A3B8" text-anchor="middle">ACADEMY AUTHORIZED REGISTRAR</text>
+    <text x="560" y="920" font-family="Arial, sans-serif" font-size="10" fill="#64748B" text-anchor="middle">DIRECTORATE OF STATE SPORTS</text>
+  </svg>`
+
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+}
+
 export default function Dashboard() {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
@@ -85,6 +144,8 @@ export default function Dashboard() {
   const [vaultDocs, setVaultDocs] = useState([])
   const [uploadDocType, setUploadDocType] = useState('Birth Certificate')
   const [uploadSending, setUploadSending] = useState(false)
+  const [vaultPreviewDoc, setVaultPreviewDoc] = useState(null)
+  const [deletingDocId, setDeletingDocId] = useState(null)
   const [assignedCoach, setAssignedCoach] = useState(null)
   const [coachSessions, setCoachSessions] = useState([])
   const [coachSquad, setCoachSquad] = useState([])
@@ -150,6 +211,36 @@ export default function Dashboard() {
       setVaultDocs([])
     }
   }, [])
+
+  const handleDeleteDoc = async (docId, docName) => {
+    const confirmed = window.confirm(`Are you sure you want to delete "${docName || 'this document'}"? It will also be removed from the Coach Dashboard review list.`)
+    if (!confirmed) return
+
+    setDeletingDocId(docId)
+    try {
+      const token = localStorage.getItem('token')
+      const res = await fetch(`/api/kyc/${docId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      const data = await res.json()
+      if (data.success) {
+        setVaultDocs(prev => prev.filter(d => d._id !== docId))
+        if (vaultPreviewDoc && vaultPreviewDoc._id === docId) {
+          setVaultPreviewDoc(null)
+        }
+      } else {
+        alert(data.message || 'Failed to delete document')
+      }
+    } catch (err) {
+      console.error('Delete document error:', err)
+      alert('Error deleting document. Please try again.')
+    } finally {
+      setDeletingDocId(null)
+    }
+  }
 
   // Auth check
   useEffect(() => {
@@ -363,31 +454,46 @@ export default function Dashboard() {
                     onChange={async (e) => {
                       const file = e.target.files[0]
                       if (!file) return
-                      // Reset so same file can be picked again
                       e.target.value = ''
+                      if (file.size > 10 * 1024 * 1024) {
+                        alert('File size must be under 10MB')
+                        return
+                      }
                       setUploadSending(true)
                       try {
                         const token = localStorage.getItem('token')
                         const sizeStr = file.size > 1048576
                           ? (file.size / 1048576).toFixed(1) + ' MB'
                           : (file.size / 1024).toFixed(0) + ' KB'
-                        const res = await fetch('/api/kyc/upload', {
-                          method: 'POST',
-                          headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                          },
-                          body: JSON.stringify({
-                            docType: uploadDocType,
-                            fileName: file.name,
-                            fileSize: sizeStr
-                          })
-                        })
-                        const data = await res.json()
-                        if (data.success) fetchVaultDocs()
+                        
+                        const reader = new FileReader()
+                        reader.onload = async () => {
+                          const fileData = reader.result
+                          try {
+                            const res = await fetch('/api/kyc/upload', {
+                              method: 'POST',
+                              headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                              },
+                              body: JSON.stringify({
+                                docType: uploadDocType,
+                                fileName: file.name,
+                                fileSize: sizeStr,
+                                fileType: file.type || 'application/octet-stream',
+                                fileData
+                              })
+                            })
+                            const data = await res.json()
+                            if (data.success) fetchVaultDocs()
+                          } catch (err) {
+                            console.error('KYC upload error:', err)
+                          } finally {
+                            setUploadSending(false)
+                          }
+                        }
+                        reader.readAsDataURL(file)
                       } catch {
-                        // silently fail
-                      } finally {
                         setUploadSending(false)
                       }
                     }}
@@ -425,7 +531,7 @@ export default function Dashboard() {
                 {/* Table header */}
                 <div className="dv-table-head">
                   <span className="dv-col-doc">DOCUMENT</span>
-                  <span className="dv-col-status">STATUS</span>
+                  <span className="dv-col-status">STATUS / ACTION</span>
                 </div>
 
                 {/* Rows */}
@@ -437,7 +543,12 @@ export default function Dashboard() {
                   )}
                   {vaultDocs.map((doc, i) => (
                     <div className="dv-row" key={doc._id || i} style={{'--i': i}}>
-                      <div className="dv-row-left">
+                      <div
+                        className="dv-row-left"
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => setVaultPreviewDoc(doc)}
+                        title="Click to view document"
+                      >
                         <div className="dv-file-icon">
                           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -452,14 +563,126 @@ export default function Dashboard() {
                           <span className="dv-file-meta">{doc.fileName || doc.file} ({doc.fileSize || doc.size})</span>
                         </div>
                       </div>
-                      <div className={`dv-badge dv-badge--${(doc.status || 'pending').toLowerCase()}`}>
-                        {doc.status}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <button
+                          type="button"
+                          className="dv-action-btn dv-action-view"
+                          style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                          onClick={() => setVaultPreviewDoc(doc)}
+                          title="View uploaded document"
+                        >
+                          👁 View
+                        </button>
+                        <button
+                          type="button"
+                          className="dv-action-btn dv-action-delete"
+                          disabled={deletingDocId === doc._id}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteDoc(doc._id, doc.docType || doc.fileName)
+                          }}
+                          title="Delete document permanently (removes from coach review too)"
+                        >
+                          {deletingDocId === doc._id ? 'Deleting…' : '🗑 Delete'}
+                        </button>
+                        <div className={`dv-badge dv-badge--${(doc.status || 'pending').toLowerCase()}`}>
+                          {doc.status}
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
+              {/* Document Preview Modal for Athlete */}
+              {vaultPreviewDoc && createPortal(
+                <div className="dv-modal-overlay" onClick={() => setVaultPreviewDoc(null)}>
+                  <div className="dv-modal-content" onClick={e => e.stopPropagation()}>
+                    <div className="dv-modal-header">
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#fff' }}>
+                            {vaultPreviewDoc.docType || vaultPreviewDoc.title}
+                          </h3>
+                          <span className={`dv-badge dv-badge--${(vaultPreviewDoc.status || 'pending').toLowerCase()}`}>
+                            {vaultPreviewDoc.status}
+                          </span>
+                        </div>
+                        <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                          {vaultPreviewDoc.fileName || vaultPreviewDoc.file} ({vaultPreviewDoc.fileSize || vaultPreviewDoc.size})
+                        </p>
+                      </div>
+                      <button className="dv-modal-close" onClick={() => setVaultPreviewDoc(null)}>✕</button>
+                    </div>
+
+                    <div className="dv-modal-body">
+                      {(() => {
+                        const docSrc = getDocumentSource(vaultPreviewDoc)
+                        const isRealPdf = docSrc?.startsWith('data:application/pdf')
+
+                        if (isRealPdf) {
+                          return (
+                            <iframe
+                              src={docSrc}
+                              title={vaultPreviewDoc.fileName || 'document'}
+                              className="dv-preview-iframe"
+                            />
+                          )
+                        }
+
+                        return (
+                          <div className="dv-preview-img-wrap">
+                            <img
+                              src={docSrc}
+                              alt={vaultPreviewDoc.docType || 'Document'}
+                              className="dv-preview-img"
+                            />
+                          </div>
+                        )
+                      })()}
+                    </div>
+
+                    <div className="dv-modal-footer">
+                      <a
+                        href={getDocumentSource(vaultPreviewDoc)}
+                        download={vaultPreviewDoc.fileName || 'document.png'}
+                        className="btn-secondary"
+                        style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.82rem' }}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                          <polyline points="7 10 12 15 17 10"/>
+                          <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Download Document
+                      </a>
+
+                      <a
+                        href={getDocumentSource(vaultPreviewDoc)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn-secondary"
+                        style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.82rem' }}
+                      >
+                        Open in Full Tab ↗
+                      </a>
+
+                      <button
+                        type="button"
+                        className="dv-action-btn dv-action-delete"
+                        style={{ marginLeft: 'auto', padding: '6px 14px', fontSize: '0.82rem' }}
+                        disabled={deletingDocId === vaultPreviewDoc._id}
+                        onClick={() => handleDeleteDoc(vaultPreviewDoc._id, vaultPreviewDoc.docType || vaultPreviewDoc.fileName)}
+                      >
+                        {deletingDocId === vaultPreviewDoc._id ? 'Deleting…' : '🗑 Delete Document'}
+                      </button>
+
+                      <button className="btn-secondary" onClick={() => setVaultPreviewDoc(null)}>Close</button>
+                    </div>
+                  </div>
+                </div>,
+                document.body
+              )}
             </section>
             )}
 

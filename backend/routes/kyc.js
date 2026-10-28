@@ -32,7 +32,7 @@ router.get('/my', verifyToken, async (req, res) => {
 // ─── POST /api/kyc/upload  — Athlete uploads a document ───
 router.post('/upload', verifyToken, async (req, res) => {
   try {
-    const { docType, fileName, fileSize } = req.body;
+    const { docType, fileName, fileSize, fileData, fileType } = req.body;
     if (!docType || !fileName) {
       return res.status(400).json({ success: false, message: 'Document type and file name are required' });
     }
@@ -44,6 +44,24 @@ router.post('/upload', verifyToken, async (req, res) => {
       if (user) { athleteName = user.name; sport = user.sport || ''; }
     }
 
+    if (mongoose.connection.readyState !== 1) {
+      const demoDoc = {
+        _id: 'fd_' + Date.now(),
+        athleteId: req.user.athleteId,
+        athleteName,
+        sport,
+        docType,
+        fileName,
+        fileSize: fileSize || '0 KB',
+        fileData: fileData || '',
+        fileType: fileType || '',
+        status: 'Pending',
+        createdAt: new Date()
+      };
+      fallbackDocs.unshift(demoDoc);
+      return res.json({ success: true, message: 'Document uploaded. Sent to coach for verification.', document: demoDoc });
+    }
+
     const doc = await KycDocument.create({
       athleteId: req.user.athleteId,
       athleteName,
@@ -51,6 +69,8 @@ router.post('/upload', verifyToken, async (req, res) => {
       docType,
       fileName,
       fileSize: fileSize || '0 KB',
+      fileData: fileData || '',
+      fileType: fileType || '',
       status: 'Pending'
     });
 
@@ -146,6 +166,62 @@ router.put('/verify/:id', verifyToken, authorize('coach', 'admin'), async (req, 
   } catch (err) {
     console.error('KYC verify error:', err);
     res.status(500).json({ success: false, message: 'Failed to verify document' });
+  }
+});
+
+// ─── DELETE /api/kyc/:id  — Athlete or Coach/Admin deletes a document ───
+router.delete('/:id', verifyToken, async (req, res) => {
+  try {
+    const docId = req.params.id;
+
+    if (mongoose.connection.readyState !== 1) {
+      const idx = fallbackDocs.findIndex(d => d._id === docId);
+      if (idx !== -1) {
+        fallbackDocs.splice(idx, 1);
+      }
+      return res.json({ success: true, message: 'Document deleted successfully', deletedId: docId });
+    }
+
+    let query = { _id: docId };
+    if (req.user.role === 'athlete') {
+      let athleteId = req.user.athleteId;
+      if (!athleteId) {
+        const user = await User.findById(req.user.id).select('athleteId').maxTimeMS(2000);
+        if (user) athleteId = user.athleteId;
+      }
+      if (athleteId) {
+        query.athleteId = athleteId;
+      }
+    }
+
+    const doc = await KycDocument.findOneAndDelete(query);
+    if (!doc) {
+      return res.status(404).json({ success: false, message: 'Document not found or unauthorized' });
+    }
+
+    // Notify coaches if athlete deleted their document
+    if (req.user.role === 'athlete') {
+      try {
+        const coaches = await User.find({ role: 'coach' }).select('athleteId').maxTimeMS(2000);
+        for (const coach of coaches) {
+          await createNotification({
+            recipientId: coach.athleteId,
+            recipientRole: 'coach',
+            type: 'doc_deleted',
+            title: 'Document Removed',
+            message: `${doc.athleteName || 'An athlete'} removed their ${doc.docType} (${doc.fileName}).`,
+            meta: { athleteId: doc.athleteId, docType: doc.docType }
+          });
+        }
+      } catch (notifErr) {
+        console.error('Notification error on doc deletion:', notifErr);
+      }
+    }
+
+    res.json({ success: true, message: 'Document deleted successfully', deletedId: docId });
+  } catch (err) {
+    console.error('KYC delete error:', err);
+    res.status(500).json({ success: false, message: 'Failed to delete document' });
   }
 });
 
