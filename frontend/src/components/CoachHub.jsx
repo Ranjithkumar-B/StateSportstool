@@ -1000,30 +1000,6 @@ export default function CoachHub({ currentView }) {
                       </option>
                     ))}
                   </select>
-                  <div className="mt-2 text-xs" style={{ minHeight: '18px' }}>
-                    {(() => {
-                      const matching = squad.filter(a => isSportMatch(a.sport, newSport))
-                      if (newSport.toLowerCase().includes('general')) {
-                        return (
-                          <span style={{ color: '#34d399' }}>
-                            ✓ General conditioning: Will be assigned to all {squad.length} squad athletes.
-                          </span>
-                        )
-                      }
-                      if (matching.length > 0) {
-                        return (
-                          <span style={{ color: '#38bdf8' }}>
-                            🎯 Assigned to {matching.length} {newSport} athlete{matching.length > 1 ? 's' : ''} in squad: {matching.map(m => m.name).join(', ')}.
-                          </span>
-                        )
-                      }
-                      return (
-                        <span style={{ color: '#fbbf24' }}>
-                          ℹ️ No athletes currently in squad for {newSport}. Registered {newSport} athletes will automatically receive this schedule.
-                        </span>
-                      )
-                    })()}
-                  </div>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Intensity Level</label>
