@@ -226,7 +226,7 @@ export default function Dashboard() {
             tl.fromTo('.stat-card', { y: 30, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.1, duration: 0.4 }, '-=0.2')
           }
           if (document.querySelectorAll('.exec-action-card').length) {
-            tl.fromTo('.exec-action-card', { y: 30, opacity: 0 }, { y: 0, stagger: 0.08, duration: 0.4 }, '-=0.2')
+            tl.fromTo('.exec-action-card', { y: 30, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.08, duration: 0.4 }, '-=0.2')
           }
           if (document.querySelector('.profile-section')) {
             tl.fromTo('.profile-section', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4 }, '-=0.2')
