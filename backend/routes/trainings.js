@@ -16,7 +16,13 @@ router.get('/', verifyToken, async (req, res) => {
       return res.status(200).json({ success: true, sessions: fallbackSessions });
     }
 
-    let sessions = await TrainingSession.find().sort({ createdAt: -1 }).maxTimeMS(2000);
+    let query = {};
+    if (req.user && req.user.role === 'coach') {
+      const coachIdentifiers = [req.user.id, req.user._id, req.user.athleteId].filter(Boolean).map(x => x.toString());
+      query = { coachId: { $in: coachIdentifiers } };
+    }
+
+    let sessions = await TrainingSession.find(query).sort({ createdAt: -1 }).maxTimeMS(2000);
 
     // If logged-in user is an athlete, only show sessions matching their sport or General Conditioning
     if (req.user && req.user.role === 'athlete') {
@@ -69,14 +75,18 @@ router.post('/', verifyToken, async (req, res) => {
         sport: a.sport || sessionSport
       }));
     } else if (mongoose.connection.readyState === 1) {
-      // Find squad athletes who belong to this sport
+      // Find squad athletes who belong to this coach and sport
       const SquadAssignment = require('../models/SquadAssignment');
+      const coachIdentifiers = [req.user.id, req.user._id, req.user.athleteId].filter(Boolean).map(x => x.toString());
+      const coachFilter = { coachId: { $in: coachIdentifiers } };
+
       if (isGeneral) {
-        const allSquad = await SquadAssignment.find().select('athleteId name sport').maxTimeMS(2000);
+        const allSquad = await SquadAssignment.find(coachFilter).select('athleteId name sport').maxTimeMS(2000);
         matchingAthletes = allSquad.map(a => ({ athleteId: a.athleteId, athleteName: a.name, sport: a.sport }));
       } else {
         const regex = new RegExp(`^${sessionSport.trim()}`, 'i');
         const squadAthletes = await SquadAssignment.find({
+          ...coachFilter,
           sport: regex
         }).select('athleteId name sport').maxTimeMS(2000);
 

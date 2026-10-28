@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 export default function CoachHub({ currentView }) {
   const [sessions, setSessions] = useState([])
   const [squad, setSquad] = useState([])
+  const [assignedDirectory, setAssignedDirectory] = useState({})
   const [loadingSessions, setLoadingSessions] = useState(true)
   const [loadingSquad, setLoadingSquad] = useState(true)
 
@@ -82,6 +83,9 @@ export default function CoachHub({ currentView }) {
         setSquad(data.squad)
       } else {
         setSquad([])
+      }
+      if (data.assignedDirectory) {
+        setAssignedDirectory(data.assignedDirectory)
       }
     } catch {
       setSquad([])
@@ -262,7 +266,10 @@ export default function CoachHub({ currentView }) {
       const data = await res.json()
       if (data.success && data.assignment) {
         setSquad(prev => [data.assignment, ...prev])
+        triggerToast(`✅ ${registeredAthlete.name} assigned to your squad!`)
+        fetchSquad()
       } else {
+        triggerToast(`⚠️ ${data.message || 'Could not assign athlete'}`)
         fetchSquad()
       }
     } catch (err) {
@@ -273,7 +280,14 @@ export default function CoachHub({ currentView }) {
 
   // Remove athlete from MongoDB
   const removeAthleteFromSquad = async (squadId, athleteId) => {
+    if (!window.confirm('Remove this athlete from your squad? They will become available to be assigned.')) return
+
     setSquad(prev => prev.filter(a => a._id !== squadId && a.athleteId !== athleteId))
+    setAssignedDirectory(prev => {
+      const next = { ...prev }
+      delete next[athleteId]
+      return next
+    })
     try {
       const token = localStorage.getItem('token')
       await fetch(`/api/squads/${squadId || athleteId}`, {
@@ -283,8 +297,11 @@ export default function CoachHub({ currentView }) {
           'Content-Type': 'application/json'
         }
       })
+      triggerToast('Athlete removed from your squad.')
+      fetchSquad()
     } catch (err) {
       console.error('Remove athlete error:', err)
+      fetchSquad()
     }
   }
 
@@ -904,7 +921,10 @@ export default function CoachHub({ currentView }) {
                 ) : (
                   filteredPortalAthletes.map((pa) => {
                     const athleteId = pa.athleteId || pa._id
-                    const isAssigned = squad.some(a => a.athleteId === athleteId || a.name.toLowerCase() === pa.name.toLowerCase())
+                    const isMySquad = squad.some(a => a.athleteId === athleteId || a.name.toLowerCase() === pa.name.toLowerCase())
+                    const otherAssignment = assignedDirectory && assignedDirectory[athleteId]
+                    const isOtherCoach = otherAssignment && otherAssignment.coachName && !isMySquad
+
                     return (
                       <div className="assign-item-card" key={pa._id || pa.athleteId}>
                         <div className="assign-user-info">
@@ -916,8 +936,21 @@ export default function CoachHub({ currentView }) {
                         </div>
                         <div className="flex items-center gap-2">
                           <code className="code-badge">{pa.athleteId}</code>
-                          {isAssigned ? (
-                            <span className="status-pill status-completed">Assigned ✓</span>
+                          {isMySquad ? (
+                            <span className="status-pill status-completed">In Your Squad ✓</span>
+                          ) : isOtherCoach ? (
+                            <span
+                              className="status-pill"
+                              style={{
+                                background: 'rgba(59, 130, 246, 0.15)',
+                                color: '#60a5fa',
+                                border: '1px solid rgba(59, 130, 246, 0.35)',
+                                fontSize: '0.75rem'
+                              }}
+                              title={`Assigned to ${otherAssignment.coachName}`}
+                            >
+                              Assigned: {otherAssignment.coachName}
+                            </span>
                           ) : (
                             <button
                               className="btn-primary-sm"

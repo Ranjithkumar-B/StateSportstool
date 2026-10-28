@@ -100,9 +100,11 @@ router.get('/', verifyToken, async (req, res) => {
         let assignedAthletes = 0, scheduledSessions = 0;
         if (mongoose.connection.readyState === 1) {
           try {
+            const coachIdentifiers = [user._id.toString(), user.athleteId].filter(Boolean);
+            const coachFilter = { coachId: { $in: coachIdentifiers } };
             const [aCount, sCount] = await Promise.all([
-              SquadAssignment.countDocuments().maxTimeMS(1200),
-              TrainingSession.countDocuments().maxTimeMS(1200)
+              SquadAssignment.countDocuments(coachFilter).maxTimeMS(1200),
+              TrainingSession.countDocuments(coachFilter).maxTimeMS(1200)
             ]);
             assignedAthletes = aCount;
             scheduledSessions = sCount;
