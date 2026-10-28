@@ -271,6 +271,30 @@
   background: rgba(239, 68, 68, 0.15);
 }
 
+/* Responsive mobile adjustment for top notification bell */
+@media (max-width: 768px) {
+  .topbar-right {
+    top: 11px;
+    right: 58px;
+    z-index: 960;
+  }
+  .nb-bell {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+  }
+  .nb-panel {
+    position: fixed;
+    top: 65px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-width: none;
+    max-height: 70vh;
+    border-radius: 14px;
+  }
+}
+
 /* Hide notification bell and panel completely when printing / downloading reports */
 @media print {
   .topbar-right,

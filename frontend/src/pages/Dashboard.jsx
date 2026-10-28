@@ -208,7 +208,14 @@ export default function Dashboard() {
 
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
-      tl.fromTo('.sidebar', { x: -60, opacity: 0 }, { x: 0, opacity: 1, duration: 0.6 })
+
+      // Animate sidebar ONLY on desktop viewports (> 768px)
+      // On mobile viewports (<= 768px), sidebar is an off-canvas drawer controlled purely by CSS transforms
+      if (typeof window !== 'undefined' && window.innerWidth > 768) {
+        tl.fromTo('.sidebar', { x: -60, opacity: 0 }, { x: 0, opacity: 1, duration: 0.6 })
+      } else {
+        gsap.set('.sidebar', { clearProps: 'transform,opacity' })
+      }
       
       // Only animate dashboard elements if we are on the Dashboard view
       if (activeTab === 'Dashboard') {
@@ -219,7 +226,7 @@ export default function Dashboard() {
             tl.fromTo('.stat-card', { y: 30, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.1, duration: 0.4 }, '-=0.2')
           }
           if (document.querySelectorAll('.exec-action-card').length) {
-            tl.fromTo('.exec-action-card', { y: 30, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.08, duration: 0.4 }, '-=0.2')
+            tl.fromTo('.exec-action-card', { y: 30, opacity: 0 }, { y: 0, stagger: 0.08, duration: 0.4 }, '-=0.2')
           }
           if (document.querySelector('.profile-section')) {
             tl.fromTo('.profile-section', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4 }, '-=0.2')
@@ -634,24 +641,37 @@ export default function Dashboard() {
       {/* Sidebar */}
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <div className="sidebar-logo">
-            <svg viewBox="0 0 64 64" fill="none">
-              <circle cx="32" cy="32" r="30" stroke="url(#gradD)" strokeWidth="3" />
-              <path d="M20 44 L32 16 L44 44" stroke="url(#gradD)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-              <path d="M24 36 H40" stroke="url(#gradD)" strokeWidth="2.5" strokeLinecap="round" />
-              <circle cx="32" cy="12" r="3" fill="#F59E0B" />
-              <defs>
-                <linearGradient id="gradD" x1="0" y1="0" x2="64" y2="64">
-                  <stop offset="0%" stopColor="#F59E0B" />
-                  <stop offset="100%" stopColor="#EF4444" />
-                </linearGradient>
-              </defs>
+          <div className="sidebar-brand-wrapper">
+            <div className="sidebar-logo">
+              <svg viewBox="0 0 64 64" fill="none">
+                <circle cx="32" cy="32" r="30" stroke="url(#gradD)" strokeWidth="3" />
+                <path d="M20 44 L32 16 L44 44" stroke="url(#gradD)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                <path d="M24 36 H40" stroke="url(#gradD)" strokeWidth="2.5" strokeLinecap="round" />
+                <circle cx="32" cy="12" r="3" fill="#F59E0B" />
+                <defs>
+                  <linearGradient id="gradD" x1="0" y1="0" x2="64" y2="64">
+                    <stop offset="0%" stopColor="#F59E0B" />
+                    <stop offset="100%" stopColor="#EF4444" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+            <div className="sidebar-brand">
+              <h2>SSA Portal</h2>
+              <span className={`role-badge ${role}`}>{capitalize(role)}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="sidebar-close-btn"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Close navigation"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="20" height="20">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
-          </div>
-          <div className="sidebar-brand">
-            <h2>SSA Portal</h2>
-            <span className={`role-badge ${role}`}>{capitalize(role)}</span>
-          </div>
+          </button>
         </div>
 
         <nav className="sidebar-nav">
